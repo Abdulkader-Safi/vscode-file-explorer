@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; style-src {{cspSource}}; script-src {{cspSource}};"
+    />
+    <link rel="stylesheet" href="{{styleUri}}" />
+    <title>File Explorer</title>
+  </head>
+  <body>
+    <div class="app-container">
+      <aside class="sidebar">
+        <div class="sidebar-section">
+          <h3 class="sidebar-title">FAVORITES</h3>
+          <div id="favoritesList" class="favorites-list"></div>
+        </div>
+        <div class="sidebar-section">
+          <h3 class="sidebar-title">DEVICES</h3>
+          <div id="devicesList" class="devices-list"></div>
+        </div>
+        <div class="sidebar-section">
+          <h3 class="sidebar-title">TAGS</h3>
+          <div id="tagsList" class="tags-list"></div>
+        </div>
+      </aside>
+      <main class="main-content">
+        <div class="toolbar">
+          <div class="breadcrumb" id="breadcrumb"></div>
+          <div class="search-container">
+            <input
+              type="text"
+              id="searchInput"
+              class="search-input"
+              placeholder="Search..."
+            />
+          </div>
+        </div>
+        <div class="file-header">
+          <div class="header-name">NAME</div>
+          <div class="header-modified">DATE MODIFIED</div>
+          <div class="header-size">SIZE</div>
+          <div class="header-kind">KIND</div>
+        </div>
+        <div class="explorer-container">
+          <div id="fileList" class="file-list"></div>
+        </div>
+      </main>
+    </div>
+    <script src="{{scriptUri}}"></script>
+  </body>
+</html>
