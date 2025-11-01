@@ -18,15 +18,7 @@
         "title": "File Explorer"
       }
     ],
-    "viewsContainers": {
-      "activitybar": [
-        {
-          "id": "file-explorer-sidebar",
-          "title": "File Explorer",
-          "icon": "$(folder)"
-        }
-      ]
-    },
+    "viewsContainers": {},
     "views": {
       "file-explorer-sidebar": [
         {

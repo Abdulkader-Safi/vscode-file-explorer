@@ -1,71 +1,100 @@
-# file-explorer README
+# File Explorer
 
-This is the README for your extension "file-explorer". After writing up a brief description, we recommend including the following sections.
+A modern, feature-rich file explorer for Visual Studio Code with an intuitive webview interface. Browse your file system, preview images, manage favorites, and perform common file operations without leaving your editor.
 
 ## Features
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+### Enhanced File Navigation
 
-For example if there is an image subfolder under your extension project workspace:
+- **Custom File Explorer UI**: Beautiful, responsive interface for browsing directories
+- **Quick Navigation**: Navigate up directories, jump to home directory, or browse to any path
+- **Dual View Modes**: Switch between list and grid views for optimal file browsing
+- **Image Previews**: Inline image previews for JPEG, PNG, GIF, SVG, and WebP files
+- **File Type Recognition**: Automatic detection and display of file types with appropriate icons
 
-\!\[feature X\]\(images/feature-x.png\)
+### File Operations
 
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+- **Create Files & Folders**: Quickly create new files and folders from within the explorer
+- **Rename**: Rename files and folders with a simple inline interface
+- **Delete**: Safely delete files and folders with confirmation dialogs
+- **Copy Path**: Copy full file paths to clipboard with a single click
+
+### Productivity Features
+
+- **Favorites**: Bookmark frequently accessed directories for quick access
+- **Hidden Files Toggle**: Show or hide hidden files (files starting with `.`)
+- **Persistent Settings**: Your view preferences, favorites, and settings are saved between sessions
+- **Context Menu**: Right-click context menu for common file operations
+
+### File Opening
+
+- **Direct Integration**: Open files directly in VS Code editor with a single click
+- **Non-Preview Mode**: Files open in dedicated tabs (not preview mode) for better workflow
+
+## Usage
+
+1. **Open the File Explorer**:
+
+   - Use the Command Palette (`Cmd+Shift+P` on macOS or `Ctrl+Shift+P` on Windows/Linux)
+   - Type "File Explorer" and select the command
+   - Or click the File Explorer icon in the activity bar
+
+2. **Navigate Directories**:
+
+   - Click on folders to open them
+   - Use the "Up" button to navigate to parent directory
+   - Use the "Home" button to jump to your home directory
+
+3. **Manage Files**:
+
+   - Right-click on files/folders for context menu options
+   - Use the "+" buttons in the toolbar to create new files or folders
+   - Click on files to open them in the editor
+
+4. **Customize View**:
+   - Click the settings icon to toggle hidden files visibility
+   - Switch between list and grid views using the view mode buttons
+   - Add directories to favorites using the star icon
 
 ## Requirements
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+- Visual Studio Code version 1.105.0 or higher
 
 ## Extension Settings
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
+This extension stores the following settings in global state:
 
-For example:
+- **Favorites**: List of favorited directory paths
+- **Show Hidden Files**: Toggle visibility of hidden files
+- **View Mode**: List or grid view preference
 
-This extension contributes the following settings:
-
-- `myExtension.enable`: Enable/disable this extension.
-- `myExtension.thing`: Set to `blah` to do something.
+These settings persist across VS Code sessions and are automatically saved when changed.
 
 ## Known Issues
 
-Calling out known issues can help limit users opening duplicate issues against your extension.
+- Very large directories (1000+ files) may take a moment to load
+- Image previews for very large image files may be slow to generate
+- Symbolic links are displayed as regular files/folders
 
 ## Release Notes
 
-Users appreciate release notes as you update your extension.
+### 0.0.1
 
-### 1.0.0
+Initial release of File Explorer:
 
-Initial release of ...
-
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
+- Custom file browser with webview interface
+- File operations (create, rename, delete)
+- Image preview support
+- Favorites management
+- Hidden files toggle
+- List and grid view modes
+- Context menu integration
+- Direct file opening in VS Code editor
 
 ---
 
-## Following extension guidelines
+## Support
 
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
+For issues, questions, or feature requests, please visit the [GitHub repository](https://github.com/yourusername/file-explorer).
 
-- [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
-
-## Working with Markdown
-
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
-
-- Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-- Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-- Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
-
-## For more information
-
-- [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-- [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
-**Enjoy!**
+**Enjoy exploring your files!**
