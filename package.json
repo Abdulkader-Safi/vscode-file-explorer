@@ -6,7 +6,31 @@
   "engines": {
     "vscode": "^1.105.0"
   },
+  "publisher": "AbdulkaderSafi",
+  "author": {
+    "name": "Safi",
+    "email": "safi.abdulkader@gmail.com",
+    "url": "https://abdulkadersafi.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Abdulkader-Safi/vscode-file-explorer"
+  },
+  "icon": "./media/image.png",
+  "keywords": [
+    "code explanation",
+    "ollama",
+    "ai",
+    "code assistant",
+    "llm",
+    "local ai",
+    "code analysis",
+    "developer tools"
+  ],
   "categories": [
+    "Machine Learning",
+    "Programming Languages",
+    "Education",
     "Other"
   ],
   "activationEvents": [],
@@ -40,7 +64,9 @@
     "pretest": "npm run compile-tests && npm run compile && npm run lint",
     "check-types": "tsc --noEmit",
     "lint": "eslint src",
-    "test": "vscode-test"
+    "test": "vscode-test",
+    "package:run": "vsce package",
+    "publish": "vsce publish"
   },
   "devDependencies": {
     "@types/vscode": "^1.105.0",
