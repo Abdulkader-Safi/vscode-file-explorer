@@ -106,11 +106,10 @@ export function activate(context: vscode.ExtensionContext) {
             case "openFile":
               try {
                 const fileUri = vscode.Uri.file(message.path);
-                await vscode.commands.executeCommand(
-                  "vscode.open",
-                  fileUri,
-                  { preview: false, viewColumn: vscode.ViewColumn.Active }
-                );
+                await vscode.commands.executeCommand("vscode.open", fileUri, {
+                  preview: false,
+                  viewColumn: vscode.ViewColumn.Active,
+                });
               } catch (error) {
                 vscode.window.showErrorMessage(
                   `Cannot open file: ${
