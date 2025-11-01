@@ -2,7 +2,7 @@
   "name": "file-explorer",
   "displayName": "file explorer",
   "description": "file explorer in vscode",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "engines": {
     "vscode": "^1.105.0"
   },
@@ -19,18 +19,9 @@
   "icon": "./media/image.png",
   "keywords": [
     "code explanation",
-    "ollama",
-    "ai",
-    "code assistant",
-    "llm",
-    "local ai",
-    "code analysis",
     "developer tools"
   ],
   "categories": [
-    "Machine Learning",
-    "Programming Languages",
-    "Education",
     "Other"
   ],
   "activationEvents": [],
@@ -43,14 +34,7 @@
       }
     ],
     "viewsContainers": {},
-    "views": {
-      "file-explorer-sidebar": [
-        {
-          "id": "file-explorer.sidebarView",
-          "name": "Explorer"
-        }
-      ]
-    }
+    "views": {}
   },
   "scripts": {
     "vscode:prepublish": "npm run package",

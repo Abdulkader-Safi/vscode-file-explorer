@@ -91,6 +91,10 @@ Initial release of File Explorer:
 - Context menu integration
 - Direct file opening in VS Code editor
 
+### 0.0.2
+
+- fix ui issue
+
 ---
 
 ## Support

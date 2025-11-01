@@ -6,7 +6,7 @@ export const getWebviewContent = (
   webview: vscode.Webview,
   context: vscode.ExtensionContext
 ): string => {
-  const webviewPath = path.join(context.extensionPath, "src", "webview");
+  const webviewPath = path.join(context.extensionPath, "dist", "webview");
 
   // Get URIs for CSS and JS files
   const styleUri = webview.asWebviewUri(

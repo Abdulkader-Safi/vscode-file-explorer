@@ -1,4 +1,6 @@
 const esbuild = require("esbuild");
+const fs = require("fs");
+const path = require("path");
 
 const production = process.argv.includes("--production");
 const watch = process.argv.includes("--watch");
@@ -25,6 +27,28 @@ const esbuildProblemMatcherPlugin = {
   },
 };
 
+/**
+ * Copy webview files to dist directory
+ */
+function copyWebviewFiles() {
+  const webviewSrc = path.join(__dirname, "src", "webview");
+  const webviewDist = path.join(__dirname, "dist", "webview");
+
+  // Create dist/webview directory if it doesn't exist
+  if (!fs.existsSync(webviewDist)) {
+    fs.mkdirSync(webviewDist, { recursive: true });
+  }
+
+  // Copy HTML, CSS, and JS files
+  const filesToCopy = ["index.html", "styles.css", "script.js"];
+  filesToCopy.forEach((file) => {
+    const srcPath = path.join(webviewSrc, file);
+    const distPath = path.join(webviewDist, file);
+    fs.copyFileSync(srcPath, distPath);
+    console.log(`Copied ${file} to dist/webview/`);
+  });
+}
+
 async function main() {
   const ctx = await esbuild.context({
     entryPoints: ["src/extension.ts"],
@@ -44,9 +68,13 @@ async function main() {
   });
   if (watch) {
     await ctx.watch();
+    // Copy webview files in watch mode too
+    copyWebviewFiles();
   } else {
     await ctx.rebuild();
     await ctx.dispose();
+    // Copy webview files after build
+    copyWebviewFiles();
   }
 }
 
