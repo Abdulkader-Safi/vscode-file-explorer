@@ -26,6 +26,7 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.ViewColumn.One,
         {
           enableScripts: true,
+          retainContextWhenHidden: true,
           localResourceRoots: [
             vscode.Uri.file(path.join(context.extensionPath, "src", "webview")),
           ],
@@ -34,6 +35,26 @@ export function activate(context: vscode.ExtensionContext) {
 
       // Set the webview's HTML content
       panel.webview.html = getWebviewContent(panel.webview, context);
+
+      // Send initial state to webview
+      const favorites = context.globalState.get<
+        Array<{ path: string; name: string }>
+      >("favorites", []);
+      const showHiddenFiles = context.globalState.get<boolean>(
+        "showHiddenFiles",
+        false
+      );
+      const viewMode = context.globalState.get<"list" | "grid">(
+        "viewMode",
+        "list"
+      );
+
+      panel.webview.postMessage({
+        command: "initState",
+        favorites,
+        showHiddenFiles,
+        viewMode,
+      });
 
       // Handle messages from the webview
       panel.webview.onDidReceiveMessage(
@@ -45,16 +66,16 @@ export function activate(context: vscode.ExtensionContext) {
 
             case "getHomeDirectory":
               const homeDir = os.homedir();
-              await sendDirectoryContents(panel, homeDir);
+              await sendDirectoryContents(panel, homeDir, context);
               return;
 
             case "openDirectory":
-              await sendDirectoryContents(panel, message.path);
+              await sendDirectoryContents(panel, message.path, context);
               return;
 
             case "navigateUp":
               const parentPath = path.dirname(message.currentPath);
-              await sendDirectoryContents(panel, parentPath);
+              await sendDirectoryContents(panel, parentPath, context);
               return;
 
             case "getImagePreview":
@@ -64,6 +85,70 @@ export function activate(context: vscode.ExtensionContext) {
             case "copyPath":
               await vscode.env.clipboard.writeText(message.path);
               vscode.window.showInformationMessage("Path copied to clipboard");
+              return;
+
+            case "saveFavorites":
+              await context.globalState.update("favorites", message.favorites);
+              return;
+
+            case "saveSettings":
+              if (message.showHiddenFiles !== undefined) {
+                await context.globalState.update(
+                  "showHiddenFiles",
+                  message.showHiddenFiles
+                );
+              }
+              if (message.viewMode !== undefined) {
+                await context.globalState.update("viewMode", message.viewMode);
+              }
+              return;
+
+            case "openFile":
+              try {
+                const fileUri = vscode.Uri.file(message.path);
+                await vscode.commands.executeCommand(
+                  "vscode.open",
+                  fileUri,
+                  { preview: false, viewColumn: vscode.ViewColumn.Active }
+                );
+              } catch (error) {
+                vscode.window.showErrorMessage(
+                  `Cannot open file: ${
+                    error instanceof Error ? error.message : "Unknown error"
+                  }`
+                );
+              }
+              return;
+
+            case "renameItem":
+              await handleRename(panel, message.path, message.newName, context);
+              return;
+
+            case "deleteItem":
+              await handleDelete(
+                panel,
+                message.path,
+                message.isDirectory,
+                context
+              );
+              return;
+
+            case "createFile":
+              await handleCreateFile(
+                panel,
+                message.dirPath,
+                message.fileName,
+                context
+              );
+              return;
+
+            case "createFolder":
+              await handleCreateFolder(
+                panel,
+                message.dirPath,
+                message.folderName,
+                context
+              );
               return;
           }
         },
@@ -78,10 +163,15 @@ export function activate(context: vscode.ExtensionContext) {
 
 async function sendDirectoryContents(
   panel: vscode.WebviewPanel,
-  dirPath: string
+  dirPath: string,
+  context: vscode.ExtensionContext
 ) {
   try {
     const items = await fs.promises.readdir(dirPath, { withFileTypes: true });
+    const showHiddenFiles = context.globalState.get<boolean>(
+      "showHiddenFiles",
+      false
+    );
 
     const fileItems = await Promise.all(
       items.map(async (item) => {
@@ -108,6 +198,8 @@ async function sendDirectoryContents(
           ".webp",
         ].includes(ext);
 
+        const isHidden = item.name.startsWith(".");
+
         return {
           name: item.name,
           isDirectory: item.isDirectory(),
@@ -116,14 +208,20 @@ async function sendDirectoryContents(
           modified: modified,
           kind: getFileKind(item.name, item.isDirectory()),
           isImage: isImage,
+          isHidden: isHidden,
         };
       })
     );
 
+    // Filter hidden files based on setting
+    const filteredItems = showHiddenFiles
+      ? fileItems
+      : fileItems.filter((item) => !item.isHidden);
+
     panel.webview.postMessage({
       command: "updateDirectory",
       path: dirPath,
-      items: fileItems,
+      items: filteredItems,
     });
   } catch (error) {
     panel.webview.postMessage({
@@ -133,10 +231,7 @@ async function sendDirectoryContents(
   }
 }
 
-async function sendImagePreview(
-  panel: vscode.WebviewPanel,
-  imagePath: string
-) {
+async function sendImagePreview(panel: vscode.WebviewPanel, imagePath: string) {
   try {
     const imageBuffer = await fs.promises.readFile(imagePath);
     const base64Image = imageBuffer.toString("base64");
@@ -204,6 +299,130 @@ function getFileKind(fileName: string, isDirectory: boolean): string {
   };
 
   return kindMap[ext] || ext.toUpperCase() + " File";
+}
+
+async function handleRename(
+  panel: vscode.WebviewPanel,
+  oldPath: string,
+  newName: string,
+  context: vscode.ExtensionContext
+) {
+  try {
+    const dirPath = path.dirname(oldPath);
+    const newPath = path.join(dirPath, newName);
+
+    await fs.promises.rename(oldPath, newPath);
+    vscode.window.showInformationMessage(`Renamed to ${newName}`);
+
+    // Refresh directory
+    await sendDirectoryContents(panel, dirPath, context);
+  } catch (error) {
+    vscode.window.showErrorMessage(
+      `Failed to rename: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`
+    );
+  }
+}
+
+async function handleDelete(
+  panel: vscode.WebviewPanel,
+  itemPath: string,
+  isDirectory: boolean,
+  context: vscode.ExtensionContext
+) {
+  try {
+    const itemName = path.basename(itemPath);
+    const result = await vscode.window.showWarningMessage(
+      `Are you sure you want to delete "${itemName}"?`,
+      { modal: true },
+      "Delete"
+    );
+
+    if (result === "Delete") {
+      if (isDirectory) {
+        await fs.promises.rm(itemPath, { recursive: true, force: true });
+      } else {
+        await fs.promises.unlink(itemPath);
+      }
+
+      vscode.window.showInformationMessage(`Deleted ${itemName}`);
+
+      // Refresh directory
+      const dirPath = path.dirname(itemPath);
+      await sendDirectoryContents(panel, dirPath, context);
+    }
+  } catch (error) {
+    vscode.window.showErrorMessage(
+      `Failed to delete: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`
+    );
+  }
+}
+
+async function handleCreateFile(
+  panel: vscode.WebviewPanel,
+  dirPath: string,
+  fileName: string,
+  context: vscode.ExtensionContext
+) {
+  try {
+    const filePath = path.join(dirPath, fileName);
+
+    // Check if file already exists
+    try {
+      await fs.promises.access(filePath);
+      vscode.window.showErrorMessage(`File "${fileName}" already exists`);
+      return;
+    } catch {
+      // File doesn't exist, continue
+    }
+
+    await fs.promises.writeFile(filePath, "");
+    vscode.window.showInformationMessage(`Created file ${fileName}`);
+
+    // Refresh directory
+    await sendDirectoryContents(panel, dirPath, context);
+  } catch (error) {
+    vscode.window.showErrorMessage(
+      `Failed to create file: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`
+    );
+  }
+}
+
+async function handleCreateFolder(
+  panel: vscode.WebviewPanel,
+  dirPath: string,
+  folderName: string,
+  context: vscode.ExtensionContext
+) {
+  try {
+    const folderPath = path.join(dirPath, folderName);
+
+    // Check if folder already exists
+    try {
+      await fs.promises.access(folderPath);
+      vscode.window.showErrorMessage(`Folder "${folderName}" already exists`);
+      return;
+    } catch {
+      // Folder doesn't exist, continue
+    }
+
+    await fs.promises.mkdir(folderPath);
+    vscode.window.showInformationMessage(`Created folder ${folderName}`);
+
+    // Refresh directory
+    await sendDirectoryContents(panel, dirPath, context);
+  } catch (error) {
+    vscode.window.showErrorMessage(
+      `Failed to create folder: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`
+    );
+  }
 }
 
 // This method is called when your extension is deactivated

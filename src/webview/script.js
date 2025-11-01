@@ -1,11 +1,13 @@
 (function () {
   const vscode = acquireVsCodeApi();
 
-  // Get state or initialize
-  let state = vscode.getState() || {
+  // State
+  let state = {
     favorites: [],
     currentPath: "",
     searchQuery: "",
+    showHiddenFiles: false,
+    viewMode: "list",
   };
 
   // DOM elements
@@ -14,7 +16,23 @@
   const searchInput = document.getElementById("searchInput");
   const favoritesListElement = document.getElementById("favoritesList");
   const devicesListElement = document.getElementById("devicesList");
-  const tagsListElement = document.getElementById("tagsList");
+  const settingsBtn = document.getElementById("settingsBtn");
+  const settingsModal = document.getElementById("settingsModal");
+  const closeSettingsBtn = document.getElementById("closeSettings");
+  const showHiddenFilesCheckbox = document.getElementById(
+    "showHiddenFilesCheckbox"
+  );
+  const listViewBtn = document.getElementById("listViewBtn");
+  const gridViewBtn = document.getElementById("gridViewBtn");
+  const newFileBtn = document.getElementById("newFileBtn");
+  const newFolderBtn = document.getElementById("newFolderBtn");
+  const explorerContainer = document.querySelector(".explorer-container");
+  const inputModal = document.getElementById("inputModal");
+  const inputModalTitle = document.getElementById("inputModalTitle");
+  const inputModalInput = document.getElementById("inputModalInput");
+  const inputModalOk = document.getElementById("inputModalOk");
+  const inputModalCancel = document.getElementById("inputModalCancel");
+  const closeInputModal = document.getElementById("closeInputModal");
 
   let currentPath = "";
   let currentItems = [];
@@ -24,8 +42,12 @@
 
   // Initialize
   initializeSidebar();
-  loadFavorites();
-  searchInput.value = state.searchQuery || "";
+  closeSettings();
+
+  // Close input modal on startup (in case it was left open)
+  if (inputModal) {
+    inputModal.style.display = "none";
+  }
 
   // Request initial directory listing
   vscode.postMessage({
@@ -34,17 +56,45 @@
 
   // Event Listeners
   searchInput.addEventListener("input", handleSearch);
+  settingsBtn.addEventListener("click", openSettings);
+  closeSettingsBtn.addEventListener("click", closeSettings);
+  showHiddenFilesCheckbox.addEventListener("change", handleHiddenFilesToggle);
+  listViewBtn.addEventListener("click", () => setViewMode("list"));
+  gridViewBtn.addEventListener("click", () => setViewMode("grid"));
+  newFileBtn.addEventListener("click", handleNewFile);
+  newFolderBtn.addEventListener("click", handleNewFolder);
+
+  // Close modals when clicking outside
+  settingsModal.addEventListener("click", (e) => {
+    if (e.target === settingsModal) {
+      closeSettings();
+    }
+  });
+
+  inputModal.addEventListener("click", (e) => {
+    if (e.target === inputModal) {
+      // Trigger cancel by clicking the cancel button
+      inputModalCancel.click();
+    }
+  });
 
   // Listen for messages from the extension
   window.addEventListener("message", (event) => {
     const message = event.data;
     switch (message.command) {
+      case "initState":
+        state.favorites = message.favorites || [];
+        state.showHiddenFiles = message.showHiddenFiles || false;
+        state.viewMode = message.viewMode || "list";
+        loadFavorites();
+        updateSettingsUI();
+        break;
       case "updateDirectory":
         currentPath = message.path;
         currentItems = message.items || [];
+        state.currentPath = currentPath;
         updateBreadcrumb(message.path);
         filterAndRenderItems();
-        saveState();
         break;
       case "error":
         showError(message.text);
@@ -61,6 +111,13 @@
     if (fileItem) {
       e.preventDefault();
       showContextMenu(e.pageX, e.pageY, fileItem);
+    } else if (
+      e.target.closest(".explorer-container") ||
+      e.target.closest(".file-list")
+    ) {
+      // Right-click on empty area
+      e.preventDefault();
+      showEmptyAreaContextMenu(e.pageX, e.pageY);
     }
   });
 
@@ -84,18 +141,40 @@
       });
       devicesListElement.appendChild(item);
     });
+  }
 
-    // Tags
-    const tags = [
-      { name: "Important", icon: "🔴", color: "#ff3b30" },
-      { name: "Work", icon: "🟠", color: "#ff9500" },
-      { name: "Personal", icon: "🟡", color: "#ffcc00" },
+  function showEmptyAreaContextMenu(x, y) {
+    removeContextMenu();
+
+    const menu = document.createElement("div");
+    menu.className = "context-menu";
+    menu.id = "contextMenu";
+    menu.style.left = x + "px";
+    menu.style.top = y + "px";
+
+    const menuItems = [
+      {
+        label: "New File",
+        action: handleNewFile,
+      },
+      {
+        label: "New Folder",
+        action: handleNewFolder,
+      },
     ];
 
-    tags.forEach((tag) => {
-      const item = createSidebarItem(tag.name, tag.icon);
-      tagsListElement.appendChild(item);
+    menuItems.forEach((item) => {
+      const menuItem = document.createElement("div");
+      menuItem.className = "context-menu-item";
+      menuItem.textContent = item.label;
+      menuItem.addEventListener("click", () => {
+        item.action();
+        removeContextMenu();
+      });
+      menu.appendChild(menuItem);
     });
+
+    document.body.appendChild(menu);
   }
 
   function createSidebarItem(name, icon, onClick) {
@@ -162,15 +241,173 @@
   function addToFavorites(path, name) {
     if (!state.favorites.find((f) => f.path === path)) {
       state.favorites.push({ path, name });
-      saveState();
+      saveFavorites();
       loadFavorites();
     }
   }
 
   function removeFavorite(path) {
     state.favorites = state.favorites.filter((f) => f.path !== path);
-    saveState();
+    saveFavorites();
     loadFavorites();
+  }
+
+  function saveFavorites() {
+    vscode.postMessage({
+      command: "saveFavorites",
+      favorites: state.favorites,
+    });
+  }
+
+  function saveSettings(updates) {
+    vscode.postMessage({
+      command: "saveSettings",
+      ...updates,
+    });
+  }
+
+  function openSettings() {
+    settingsModal.style.display = "flex";
+  }
+
+  function closeSettings() {
+    settingsModal.style.display = "none";
+  }
+
+  function showInputModal(title, defaultValue = "") {
+    return new Promise((resolve) => {
+      inputModalTitle.textContent = title;
+      inputModalInput.value = defaultValue;
+      inputModal.style.display = "flex";
+
+      // Focus the input after a brief delay to ensure modal is rendered
+      setTimeout(() => {
+        inputModalInput.focus();
+        inputModalInput.select();
+      }, 50);
+
+      const handleOk = () => {
+        const value = inputModalInput.value.trim();
+        cleanup();
+        resolve(value || null);
+      };
+
+      const handleCancel = () => {
+        cleanup();
+        resolve(null);
+      };
+
+      const handleKeyDown = (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          handleOk();
+        } else if (e.key === "Escape") {
+          e.preventDefault();
+          handleCancel();
+        }
+      };
+
+      const cleanup = () => {
+        inputModal.style.display = "none";
+        inputModalInput.value = "";
+        inputModalOk.removeEventListener("click", handleOk);
+        inputModalCancel.removeEventListener("click", handleCancel);
+        closeInputModal.removeEventListener("click", handleCancel);
+        inputModalInput.removeEventListener("keydown", handleKeyDown);
+      };
+
+      // Remove any existing listeners before adding new ones
+      inputModalOk.removeEventListener("click", handleOk);
+      inputModalCancel.removeEventListener("click", handleCancel);
+      closeInputModal.removeEventListener("click", handleCancel);
+      inputModalInput.removeEventListener("keydown", handleKeyDown);
+
+      // Add event listeners
+      inputModalOk.addEventListener("click", handleOk, { once: true });
+      inputModalCancel.addEventListener("click", handleCancel, { once: true });
+      closeInputModal.addEventListener("click", handleCancel, { once: true });
+      inputModalInput.addEventListener("keydown", handleKeyDown);
+    });
+  }
+
+  function updateSettingsUI() {
+    showHiddenFilesCheckbox.checked = state.showHiddenFiles;
+    listViewBtn.classList.toggle("active", state.viewMode === "list");
+    gridViewBtn.classList.toggle("active", state.viewMode === "grid");
+    fileListElement.classList.toggle("grid-view", state.viewMode === "grid");
+  }
+
+  function handleHiddenFilesToggle() {
+    state.showHiddenFiles = showHiddenFilesCheckbox.checked;
+    saveSettings({ showHiddenFiles: state.showHiddenFiles });
+    // Refresh current directory
+    vscode.postMessage({
+      command: "openDirectory",
+      path: currentPath,
+    });
+  }
+
+  function setViewMode(mode) {
+    state.viewMode = mode;
+    saveSettings({ viewMode: mode });
+    updateSettingsUI();
+  }
+
+  async function handleNewFile() {
+    const dirPath = currentPath || state.currentPath;
+    if (!dirPath) {
+      vscode.postMessage({
+        command: "sendNotification",
+        text: "Please navigate to a directory first",
+      });
+      return;
+    }
+    const fileName = await showInputModal("Enter file name");
+    if (fileName) {
+      vscode.postMessage({
+        command: "createFile",
+        dirPath: dirPath,
+        fileName: fileName,
+      });
+    }
+  }
+
+  async function handleNewFolder() {
+    const dirPath = currentPath || state.currentPath;
+    if (!dirPath) {
+      vscode.postMessage({
+        command: "sendNotification",
+        text: "Please navigate to a directory first",
+      });
+      return;
+    }
+    const folderName = await showInputModal("Enter folder name");
+    if (folderName) {
+      vscode.postMessage({
+        command: "createFolder",
+        dirPath: dirPath,
+        folderName: folderName,
+      });
+    }
+  }
+
+  async function handleRename(path, currentName) {
+    const newName = await showInputModal("Rename to", currentName);
+    if (newName && newName !== currentName) {
+      vscode.postMessage({
+        command: "renameItem",
+        path: path,
+        newName: newName,
+      });
+    }
+  }
+
+  function handleDelete(path, isDirectory) {
+    vscode.postMessage({
+      command: "deleteItem",
+      path: path,
+      isDirectory: isDirectory,
+    });
   }
 
   function updateBreadcrumb(path) {
@@ -207,7 +444,6 @@
 
   function handleSearch() {
     state.searchQuery = searchInput.value;
-    saveState();
     filterAndRenderItems();
   }
 
@@ -336,11 +572,25 @@
           }, 300);
         }
       } else {
-        selectItem(fileItem);
-        vscode.postMessage({
-          command: "sendNotification",
-          text: `File selected: ${item.name}`,
-        });
+        // File clicked
+        if (lastClickedItem === fileItem && clickTimeout) {
+          // Double click detected - open file
+          clearTimeout(clickTimeout);
+          clickTimeout = null;
+          lastClickedItem = null;
+          vscode.postMessage({
+            command: "openFile",
+            path: item.path,
+          });
+        } else {
+          // First click
+          selectItem(fileItem);
+          lastClickedItem = fileItem;
+          clickTimeout = setTimeout(() => {
+            clickTimeout = null;
+            lastClickedItem = null;
+          }, 300);
+        }
       }
     });
 
@@ -553,9 +803,31 @@
 
     const menuItems = [
       {
+        label: "Open",
+        action: () => {
+          if (!isDirectory) {
+            vscode.postMessage({
+              command: "openFile",
+              path: path,
+            });
+          }
+        },
+        show: !isDirectory,
+      },
+      {
         label: "Add to Favorites",
         action: () => addToFavorites(path, name),
         show: isDirectory,
+      },
+      {
+        label: "Rename",
+        action: () => handleRename(path, name),
+        show: true,
+      },
+      {
+        label: "Delete",
+        action: () => handleDelete(path, isDirectory),
+        show: true,
       },
       {
         label: "Copy Path",
@@ -594,14 +866,6 @@
 
   function showError(message) {
     fileListElement.innerHTML = `<div class="error">Error: ${message}</div>`;
-  }
-
-  function saveState() {
-    vscode.setState({
-      favorites: state.favorites,
-      currentPath: currentPath,
-      searchQuery: state.searchQuery,
-    });
   }
 
   // Show loading initially
