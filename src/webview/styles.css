@@ -619,3 +619,93 @@ body {
 .modal-button-secondary:hover {
   background-color: var(--vscode-button-secondaryHoverBackground);
 }
+
+/* Settings Favorites List */
+.settings-favorites-list {
+  margin-top: 12px;
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.settings-favorites-empty {
+  padding: 24px;
+  text-align: center;
+  color: var(--vscode-descriptionForeground);
+  font-size: 12px;
+}
+
+.settings-favorite-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+  gap: 8px;
+  border-bottom: 1px solid var(--vscode-panel-border);
+  background-color: var(--vscode-input-background);
+  cursor: grab;
+  transition: background-color 0.15s ease, transform 0.15s ease;
+  user-select: none;
+}
+
+.settings-favorite-item:last-child {
+  border-bottom: none;
+}
+
+.settings-favorite-item:hover {
+  background-color: var(--vscode-list-hoverBackground);
+}
+
+.settings-favorite-item.dragging {
+  opacity: 0.5;
+  cursor: grabbing;
+  transform: scale(1.02);
+}
+
+.settings-favorite-item.drag-over {
+  background-color: var(--vscode-list-activeSelectionBackground);
+  border-top: 2px solid var(--vscode-focusBorder);
+}
+
+.drag-handle {
+  color: var(--vscode-descriptionForeground);
+  font-size: 14px;
+  cursor: grab;
+  padding: 2px 4px;
+  margin-right: 4px;
+}
+
+.settings-favorite-item.dragging .drag-handle {
+  cursor: grabbing;
+}
+
+.settings-favorite-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.settings-favorite-name {
+  flex: 1;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-favorite-remove {
+  background-color: transparent;
+  border: none;
+  color: var(--vscode-descriptionForeground);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  opacity: 0.6;
+  transition: opacity 0.1s ease, background-color 0.1s ease;
+  flex-shrink: 0;
+}
+
+.settings-favorite-remove:hover {
+  opacity: 1;
+  background-color: var(--vscode-inputValidation-errorBackground);
+  color: var(--vscode-inputValidation-errorForeground);
+}

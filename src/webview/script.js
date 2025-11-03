@@ -15,6 +15,9 @@
   const breadcrumbElement = document.getElementById("breadcrumb");
   const searchInput = document.getElementById("searchInput");
   const favoritesListElement = document.getElementById("favoritesList");
+  const settingsFavoritesListElement = document.getElementById(
+    "settingsFavoritesList"
+  );
   const devicesListElement = document.getElementById("devicesList");
   const settingsBtn = document.getElementById("settingsBtn");
   const settingsModal = document.getElementById("settingsModal");
@@ -335,6 +338,131 @@
     listViewBtn.classList.toggle("active", state.viewMode === "list");
     gridViewBtn.classList.toggle("active", state.viewMode === "grid");
     fileListElement.classList.toggle("grid-view", state.viewMode === "grid");
+    loadSettingsFavorites();
+  }
+
+  function loadSettingsFavorites() {
+    settingsFavoritesListElement.innerHTML = "";
+
+    if (state.favorites.length === 0) {
+      const emptyMessage = document.createElement("div");
+      emptyMessage.className = "settings-favorites-empty";
+      emptyMessage.textContent =
+        "No favorites yet. Right-click a folder to add it to favorites.";
+      settingsFavoritesListElement.appendChild(emptyMessage);
+      return;
+    }
+
+    state.favorites.forEach((fav, index) => {
+      const item = createSettingsFavoriteItem(fav, index);
+      settingsFavoritesListElement.appendChild(item);
+    });
+  }
+
+  function createSettingsFavoriteItem(fav, index) {
+    const item = document.createElement("div");
+    item.className = "settings-favorite-item";
+    item.draggable = true;
+    item.dataset.index = index;
+    item.dataset.path = fav.path;
+
+    const dragHandle = document.createElement("span");
+    dragHandle.className = "drag-handle";
+    dragHandle.textContent = "☰";
+
+    const iconSpan = document.createElement("span");
+    iconSpan.className = "settings-favorite-icon";
+    iconSpan.textContent = "📁";
+
+    const nameSpan = document.createElement("span");
+    nameSpan.className = "settings-favorite-name";
+    nameSpan.textContent = fav.name;
+
+    const removeBtn = document.createElement("button");
+    removeBtn.className = "settings-favorite-remove";
+    removeBtn.textContent = "✕";
+    removeBtn.title = "Remove from favorites";
+    removeBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      removeFavorite(fav.path);
+      loadSettingsFavorites();
+    });
+
+    item.appendChild(dragHandle);
+    item.appendChild(iconSpan);
+    item.appendChild(nameSpan);
+    item.appendChild(removeBtn);
+
+    // Drag and drop event listeners
+    item.addEventListener("dragstart", handleDragStart);
+    item.addEventListener("dragend", handleDragEnd);
+    item.addEventListener("dragover", handleDragOver);
+    item.addEventListener("drop", handleDrop);
+    item.addEventListener("dragenter", handleDragEnter);
+    item.addEventListener("dragleave", handleDragLeave);
+
+    return item;
+  }
+
+  let draggedItem = null;
+
+  function handleDragStart(e) {
+    draggedItem = this;
+    this.classList.add("dragging");
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/html", this.innerHTML);
+  }
+
+  function handleDragEnd() {
+    this.classList.remove("dragging");
+
+    // Remove all drag-over classes
+    document.querySelectorAll(".settings-favorite-item").forEach((item) => {
+      item.classList.remove("drag-over");
+    });
+
+    draggedItem = null;
+  }
+
+  function handleDragOver(e) {
+    if (e.preventDefault) {
+      e.preventDefault();
+    }
+    e.dataTransfer.dropEffect = "move";
+    return false;
+  }
+
+  function handleDragEnter() {
+    if (this !== draggedItem) {
+      this.classList.add("drag-over");
+    }
+  }
+
+  function handleDragLeave() {
+    this.classList.remove("drag-over");
+  }
+
+  function handleDrop(e) {
+    if (e.stopPropagation) {
+      e.stopPropagation();
+    }
+
+    if (draggedItem !== this) {
+      const fromIndex = parseInt(draggedItem.dataset.index);
+      const toIndex = parseInt(this.dataset.index);
+
+      // Reorder the favorites array
+      const newFavorites = [...state.favorites];
+      const [movedItem] = newFavorites.splice(fromIndex, 1);
+      newFavorites.splice(toIndex, 0, movedItem);
+
+      state.favorites = newFavorites;
+      saveFavorites();
+      loadFavorites();
+      loadSettingsFavorites();
+    }
+
+    return false;
   }
 
   function handleHiddenFilesToggle() {

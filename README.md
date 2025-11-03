@@ -95,6 +95,11 @@ Initial release of File Explorer:
 
 - fix ui issue
 
+### 0.0.3
+
+- Added drag-and-drop reordering for favorites in settings panel
+- Improved favorites management with visual feedback during reordering
+
 ---
 
 ## Support
