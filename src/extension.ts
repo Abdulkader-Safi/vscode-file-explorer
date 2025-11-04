@@ -17,6 +17,8 @@ let sshConnectionManager: SSHConnectionManager;
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
+  console.log('File Explorer extension is now active!');
+
   // Initialize with local file system
   activeFileSystem = new LocalFileSystem();
 
@@ -29,6 +31,7 @@ export function activate(context: vscode.ExtensionContext) {
   const disposable = vscode.commands.registerCommand(
     "file-explorer.helloWorld",
     () => {
+      console.log('File Explorer command executed!');
       // Create and show the webview panel
       const panel = vscode.window.createWebviewPanel(
         "fileExplorerView",
@@ -218,6 +221,7 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(disposable);
+  console.log('File Explorer command registered successfully!');
 }
 
 async function sendDirectoryContents(

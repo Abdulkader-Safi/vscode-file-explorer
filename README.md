@@ -146,6 +146,10 @@ All settings persist across VS Code sessions and are automatically saved when ch
 
 ## Release Notes
 
+### 0.1.1 - 0.1.2
+
+- fix File explorer not found issue
+
 ### 0.1.0
 
 Major update with SSH/SFTP support and profile-based favorites:
