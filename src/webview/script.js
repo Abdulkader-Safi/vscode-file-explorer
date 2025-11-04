@@ -8,6 +8,9 @@
     searchQuery: "",
     showHiddenFiles: false,
     viewMode: "list",
+    sshConnections: [],
+    fileSystemType: "local",
+    activeConnectionId: null,
   };
 
   // DOM elements
@@ -37,6 +40,23 @@
   const inputModalCancel = document.getElementById("inputModalCancel");
   const closeInputModal = document.getElementById("closeInputModal");
 
+  // SSH elements
+  const sshConnectionsListElement = document.getElementById(
+    "sshConnectionsList"
+  );
+  const addSSHConnectionBtn = document.getElementById("addSSHConnectionBtn");
+  const sshModal = document.getElementById("sshModal");
+  const closeSSHModal = document.getElementById("closeSSHModal");
+  const sshCancelBtn = document.getElementById("sshCancelBtn");
+  const sshSaveBtn = document.getElementById("sshSaveBtn");
+  const sshTestConnectionBtn = document.getElementById("sshTestConnectionBtn");
+  const authPassword = document.getElementById("authPassword");
+  const authKey = document.getElementById("authKey");
+  const passwordGroup = document.getElementById("passwordGroup");
+  const keyGroup = document.getElementById("keyGroup");
+  const passphraseGroup = document.getElementById("passphraseGroup");
+  const sshTestResult = document.getElementById("sshTestResult");
+
   let currentPath = "";
   let currentItems = [];
   let filteredItems = [];
@@ -47,9 +67,12 @@
   initializeSidebar();
   closeSettings();
 
-  // Close input modal on startup (in case it was left open)
+  // Close modals on startup (in case they were left open)
   if (inputModal) {
     inputModal.style.display = "none";
+  }
+  if (sshModal) {
+    sshModal.style.display = "none";
   }
 
   // Request initial directory listing
@@ -67,6 +90,15 @@
   newFileBtn.addEventListener("click", handleNewFile);
   newFolderBtn.addEventListener("click", handleNewFolder);
 
+  // SSH event listeners
+  addSSHConnectionBtn.addEventListener("click", openSSHModal);
+  closeSSHModal.addEventListener("click", closeSSHModalHandler);
+  sshCancelBtn.addEventListener("click", closeSSHModalHandler);
+  sshSaveBtn.addEventListener("click", handleSSHSave);
+  sshTestConnectionBtn.addEventListener("click", handleSSHTest);
+  authPassword.addEventListener("change", toggleAuthMethod);
+  authKey.addEventListener("change", toggleAuthMethod);
+
   // Close modals when clicking outside
   settingsModal.addEventListener("click", (e) => {
     if (e.target === settingsModal) {
@@ -81,6 +113,12 @@
     }
   });
 
+  sshModal.addEventListener("click", (e) => {
+    if (e.target === sshModal) {
+      closeSSHModalHandler();
+    }
+  });
+
   // Listen for messages from the extension
   window.addEventListener("message", (event) => {
     const message = event.data;
@@ -89,21 +127,61 @@
         state.favorites = message.favorites || [];
         state.showHiddenFiles = message.showHiddenFiles || false;
         state.viewMode = message.viewMode || "list";
+        state.sshConnections = message.sshConnections || [];
+        state.fileSystemType = message.fileSystemType || "local";
+        state.activeConnectionId = message.connectionId || null;
         loadFavorites();
         updateSettingsUI();
+        renderSSHConnections();
         break;
       case "updateDirectory":
         currentPath = message.path;
         currentItems = message.items || [];
         state.currentPath = currentPath;
+        state.fileSystemType = message.fileSystemType || "local";
+        state.activeConnectionId = message.connectionId || null;
         updateBreadcrumb(message.path);
         filterAndRenderItems();
+        renderSSHConnections();
         break;
       case "error":
         showError(message.text);
         break;
       case "imagePreview":
         updateImagePreview(message.path, message.dataUrl);
+        break;
+      case "sshTestResult":
+        handleSSHTestResult(message.success, message.error);
+        break;
+      case "sshConnectionCreated":
+        state.sshConnections = message.connections || [];
+        renderSSHConnections();
+        closeSSHModalHandler();
+        // Auto-connect to the new connection
+        vscode.postMessage({
+          command: "connectSSH",
+          connectionId: message.connectionId,
+        });
+        break;
+      case "sshConnectionStatus":
+        handleSSHConnectionStatus(
+          message.connectionId,
+          message.status,
+          message.error
+        );
+        break;
+      case "sshConnectionDeleted":
+        state.sshConnections = message.connections || [];
+        renderSSHConnections();
+        break;
+      case "sshConnectionsUpdated":
+        state.sshConnections = message.connections || [];
+        renderSSHConnections();
+        break;
+      case "fileSystemSwitched":
+        state.fileSystemType = message.type;
+        state.activeConnectionId = message.connectionId;
+        renderSSHConnections();
         break;
     }
   });
@@ -994,6 +1072,182 @@
 
   function showError(message) {
     fileListElement.innerHTML = `<div class="error">Error: ${message}</div>`;
+  }
+
+  // SSH Functions
+
+  function openSSHModal() {
+    // Reset form
+    document.getElementById("sshNameInput").value = "";
+    document.getElementById("sshHostInput").value = "";
+    document.getElementById("sshPortInput").value = "22";
+    document.getElementById("sshUsernameInput").value = "";
+    document.getElementById("sshPasswordInput").value = "";
+    document.getElementById("sshKeyPathInput").value = "";
+    document.getElementById("sshPassphraseInput").value = "";
+    document.getElementById("saveCredentialsCheckbox").checked = true;
+    authPassword.checked = true;
+    toggleAuthMethod();
+    sshTestResult.style.display = "none";
+    sshModal.style.display = "flex";
+  }
+
+  function closeSSHModalHandler() {
+    sshModal.style.display = "none";
+  }
+
+  function toggleAuthMethod() {
+    if (authPassword.checked) {
+      passwordGroup.style.display = "block";
+      keyGroup.style.display = "none";
+      passphraseGroup.style.display = "none";
+    } else {
+      passwordGroup.style.display = "none";
+      keyGroup.style.display = "block";
+      passphraseGroup.style.display = "block";
+    }
+  }
+
+  function handleSSHTest() {
+    const host = document.getElementById("sshHostInput").value.trim();
+    const port = parseInt(document.getElementById("sshPortInput").value);
+    const username = document.getElementById("sshUsernameInput").value.trim();
+    const authMethod = authPassword.checked ? "password" : "key";
+    const password = document.getElementById("sshPasswordInput").value;
+    const privateKeyPath = document.getElementById("sshKeyPathInput").value.trim();
+    const passphrase = document.getElementById("sshPassphraseInput").value;
+
+    if (!host || !username) {
+      sshTestResult.textContent = "Please fill in host and username";
+      sshTestResult.className = "ssh-test-result error";
+      sshTestResult.style.display = "block";
+      return;
+    }
+
+    sshTestResult.textContent = "Testing connection...";
+    sshTestResult.className = "ssh-test-result";
+    sshTestResult.style.display = "block";
+
+    vscode.postMessage({
+      command: "testSSHConnection",
+      host,
+      port,
+      username,
+      authMethod,
+      password,
+      privateKeyPath,
+      passphrase,
+    });
+  }
+
+  function handleSSHTestResult(success, error) {
+    if (success) {
+      sshTestResult.textContent = "✓ Connection successful!";
+      sshTestResult.className = "ssh-test-result success";
+    } else {
+      sshTestResult.textContent = `✗ Connection failed: ${error}`;
+      sshTestResult.className = "ssh-test-result error";
+    }
+    sshTestResult.style.display = "block";
+  }
+
+  function handleSSHSave() {
+    const name = document.getElementById("sshNameInput").value.trim();
+    const host = document.getElementById("sshHostInput").value.trim();
+    const port = parseInt(document.getElementById("sshPortInput").value);
+    const username = document.getElementById("sshUsernameInput").value.trim();
+    const authMethod = authPassword.checked ? "password" : "key";
+    const password = document.getElementById("sshPasswordInput").value;
+    const privateKeyPath = document.getElementById("sshKeyPathInput").value.trim();
+    const passphrase = document.getElementById("sshPassphraseInput").value;
+    const saveCredentials = document.getElementById("saveCredentialsCheckbox").checked;
+
+    if (!name || !host || !username) {
+      sshTestResult.textContent = "Please fill in name, host, and username";
+      sshTestResult.className = "ssh-test-result error";
+      sshTestResult.style.display = "block";
+      return;
+    }
+
+    vscode.postMessage({
+      command: "createSSHConnection",
+      name,
+      host,
+      port,
+      username,
+      authMethod,
+      password,
+      privateKeyPath,
+      passphrase,
+      saveCredentials,
+    });
+  }
+
+  function renderSSHConnections() {
+    if (!sshConnectionsListElement) {
+      return;
+    }
+
+    sshConnectionsListElement.innerHTML = "";
+
+    state.sshConnections.forEach((connection) => {
+      const item = document.createElement("div");
+      item.className = "ssh-connection-item";
+
+      // Add status classes
+      if (state.activeConnectionId === connection.id) {
+        item.classList.add("connected");
+      }
+
+      item.innerHTML = `
+        <span class="ssh-connection-icon">🔗</span>
+        <span class="ssh-connection-name">${connection.name}</span>
+        <div class="ssh-connection-actions">
+          <button class="ssh-action-btn" data-action="delete" title="Delete">✕</button>
+        </div>
+      `;
+
+      // Connect/disconnect on click
+      item.addEventListener("click", (e) => {
+        if (e.target.classList.contains("ssh-action-btn")) {
+          return; // Let button handlers handle this
+        }
+
+        if (state.activeConnectionId === connection.id) {
+          // Disconnect
+          vscode.postMessage({
+            command: "disconnectSSH",
+            connectionId: connection.id,
+          });
+        } else {
+          // Connect
+          vscode.postMessage({
+            command: "connectSSH",
+            connectionId: connection.id,
+          });
+        }
+      });
+
+      // Delete button
+      const deleteBtn = item.querySelector('[data-action="delete"]');
+      deleteBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        vscode.postMessage({
+          command: "deleteSSHConnection",
+          connectionId: connection.id,
+        });
+      });
+
+      sshConnectionsListElement.appendChild(item);
+    });
+  }
+
+  function handleSSHConnectionStatus(connectionId, status, error) {
+    renderSSHConnections();
+
+    if (status === "error" && error) {
+      showError(`SSH Connection Error: ${error}`);
+    }
   }
 
   // Show loading initially

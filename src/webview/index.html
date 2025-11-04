@@ -21,6 +21,19 @@
           <h3 class="sidebar-title">DEVICES</h3>
           <div id="devicesList" class="devices-list"></div>
         </div>
+        <div class="sidebar-section">
+          <div class="sidebar-title-with-action">
+            <h3 class="sidebar-title">SSH CONNECTIONS</h3>
+            <button
+              class="sidebar-action-btn"
+              id="addSSHConnectionBtn"
+              title="Add SSH Connection"
+            >
+              +
+            </button>
+          </div>
+          <div id="sshConnectionsList" class="ssh-connections-list"></div>
+        </div>
       </aside>
       <main class="main-content">
         <div class="toolbar">
@@ -122,6 +135,133 @@
             </button>
             <button class="modal-button modal-button-primary" id="inputModalOk">
               OK
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SSH Connection Modal -->
+    <div id="sshModal" class="modal" style="display: none">
+      <div class="modal-content modal-large">
+        <div class="modal-header">
+          <h2>SSH Connection</h2>
+          <button class="modal-close" id="closeSSHModal">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Connection Name</label>
+            <input
+              type="text"
+              id="sshNameInput"
+              class="form-input"
+              placeholder="My Server"
+            />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Host</label>
+            <input
+              type="text"
+              id="sshHostInput"
+              class="form-input"
+              placeholder="example.com or 192.168.1.1"
+            />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Port</label>
+            <input
+              type="number"
+              id="sshPortInput"
+              class="form-input"
+              value="22"
+            />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Username</label>
+            <input
+              type="text"
+              id="sshUsernameInput"
+              class="form-input"
+              placeholder="username"
+            />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Authentication Method</label>
+            <div class="radio-group">
+              <label class="radio-label">
+                <input
+                  type="radio"
+                  name="authMethod"
+                  value="password"
+                  id="authPassword"
+                  checked
+                />
+                Password
+              </label>
+              <label class="radio-label">
+                <input
+                  type="radio"
+                  name="authMethod"
+                  value="key"
+                  id="authKey"
+                />
+                Private Key
+              </label>
+            </div>
+          </div>
+          <div class="form-group" id="passwordGroup">
+            <label class="form-label">Password</label>
+            <input
+              type="password"
+              id="sshPasswordInput"
+              class="form-input"
+              placeholder="Enter password"
+            />
+          </div>
+          <div class="form-group" id="keyGroup" style="display: none">
+            <label class="form-label">Private Key Path</label>
+            <input
+              type="text"
+              id="sshKeyPathInput"
+              class="form-input"
+              placeholder="~/.ssh/id_rsa"
+            />
+          </div>
+          <div class="form-group" id="passphraseGroup" style="display: none">
+            <label class="form-label">Passphrase (if required)</label>
+            <input
+              type="password"
+              id="sshPassphraseInput"
+              class="form-input"
+              placeholder="Enter passphrase"
+            />
+          </div>
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input type="checkbox" id="saveCredentialsCheckbox" checked />
+              Save credentials securely
+            </label>
+          </div>
+          <div
+            id="sshTestResult"
+            class="ssh-test-result"
+            style="display: none"
+          ></div>
+          <div class="modal-buttons">
+            <button
+              class="modal-button modal-button-secondary"
+              id="sshTestConnectionBtn"
+            >
+              Test Connection
+            </button>
+            <button
+              class="modal-button modal-button-secondary"
+              id="sshCancelBtn"
+            >
+              Cancel
+            </button>
+            <button class="modal-button modal-button-primary" id="sshSaveBtn">
+              Save & Connect
             </button>
           </div>
         </div>

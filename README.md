@@ -11,27 +11,44 @@ A modern, feature-rich file explorer for Visual Studio Code with an intuitive we
 - **Dual View Modes**: Switch between list and grid views for optimal file browsing
 - **Image Previews**: Inline image previews for JPEG, PNG, GIF, SVG, and WebP files
 - **File Type Recognition**: Automatic detection and display of file types with appropriate icons
+- **Multi-System Support**: Seamlessly browse both local and remote (SSH/SFTP) file systems
+
+### SSH/SFTP Remote File Management
+
+- **SSH Connections**: Connect to remote servers via SSH/SFTP protocol
+- **Multiple Authentication Methods**:
+  - Password-based authentication
+  - Private key authentication (with optional passphrase support)
+- **Secure Credential Storage**: Credentials are stored securely using VSCode's Secret Storage API
+- **Connection Management**: Save, manage, and quickly switch between multiple SSH connections
+- **Remote File Editing**: Edit remote files with automatic upload on save
+- **Connection Health Monitoring**: Automatic connection health checks and reconnection
 
 ### File Operations
 
-- **Create Files & Folders**: Quickly create new files and folders from within the explorer
+- **Create Files & Folders**: Quickly create new files and folders from within the explorer (local and remote)
 - **Rename**: Rename files and folders with a simple inline interface
 - **Delete**: Safely delete files and folders with confirmation dialogs
 - **Copy Path**: Copy full file paths to clipboard with a single click
+- **Remote File Editing**: Edit files on remote servers with automatic sync on save
 
 ### Productivity Features
 
 - **Favorites**: Bookmark frequently accessed directories for quick access
+- **Drag-and-Drop Reordering**: Reorder your favorites via drag-and-drop in settings
 - **Hidden Files Toggle**: Show or hide hidden files (files starting with `.`)
-- **Persistent Settings**: Your view preferences, favorites, and settings are saved between sessions
+- **Persistent Settings**: Your view preferences, favorites, and SSH connections are saved between sessions
 - **Context Menu**: Right-click context menu for common file operations
 
 ### File Opening
 
 - **Direct Integration**: Open files directly in VS Code editor with a single click
 - **Non-Preview Mode**: Files open in dedicated tabs (not preview mode) for better workflow
+- **Smart File Handling**: Automatic handling of text files vs. images for both local and remote systems
 
 ## Usage
+
+### Basic File Navigation
 
 1. **Open the File Explorer**:
 
@@ -55,6 +72,34 @@ A modern, feature-rich file explorer for Visual Studio Code with an intuitive we
    - Click the settings icon to toggle hidden files visibility
    - Switch between list and grid views using the view mode buttons
    - Add directories to favorites using the star icon
+   - Reorder favorites by dragging and dropping in the settings panel
+
+### SSH/SFTP Remote Connections
+
+1. **Add an SSH Connection**:
+
+   - Click the "+" button in the SSH Connections section of the sidebar
+   - Enter connection details (name, host, port, username)
+   - Choose authentication method (password or private key)
+   - Optionally test the connection before saving
+   - Click "Save & Connect" to save and connect
+
+2. **Connect to a Remote Server**:
+
+   - Click on a saved SSH connection in the sidebar
+   - The extension will connect and display your remote home directory
+   - Browse and manage files just like on your local system
+
+3. **Edit Remote Files**:
+
+   - Click on any remote file to open it in the editor
+   - Make your changes and save (Cmd+S / Ctrl+S)
+   - Changes are automatically uploaded to the remote server
+   - You'll see a confirmation message when the upload completes
+
+4. **Switch Between Local and Remote**:
+   - Click "Local" in the devices section to return to your local file system
+   - Click any SSH connection to switch to that remote system
 
 ## Requirements
 
@@ -62,21 +107,53 @@ A modern, feature-rich file explorer for Visual Studio Code with an intuitive we
 
 ## Extension Settings
 
-This extension stores the following settings in global state:
+This extension stores the following settings:
 
-- **Favorites**: List of favorited directory paths
+### Global State
+
+- **Favorites**: List of favorited directory paths (with drag-and-drop reordering support)
 - **Show Hidden Files**: Toggle visibility of hidden files
 - **View Mode**: List or grid view preference
+- **SSH Connections**: Saved SSH connection configurations
 
-These settings persist across VS Code sessions and are automatically saved when changed.
+### Secure Storage
+
+- **SSH Credentials**: Passwords, private key paths, and passphrases are stored securely using VSCode's Secret Storage API
+
+All settings persist across VS Code sessions and are automatically saved when changed.
 
 ## Known Issues
 
 - Very large directories (1000+ files) may take a moment to load
 - Image previews for very large image files may be slow to generate
 - Symbolic links are displayed as regular files/folders
+- SSH connection timeout is set to 30 seconds, which may be insufficient for very slow networks
 
 ## Release Notes
+
+### 0.1.0
+
+Major update with SSH/SFTP support:
+
+- **SSH/SFTP Remote File System Support**: Connect to and manage files on remote servers
+- **Multiple Authentication Methods**: Support for password and private key authentication
+- **Secure Credential Storage**: Credentials stored securely using VSCode's Secret Storage API
+- **Remote File Editing**: Edit remote files with automatic upload on save
+- **Connection Management**: Save, manage, and switch between multiple SSH connections
+- **Connection Health Monitoring**: Automatic connection health checks every 30 seconds
+- **File System Abstraction**: Unified interface for local and remote file operations
+- **Buffer Handling Fix**: Proper handling of SFTP responses (Array/Uint8Array to Buffer conversion)
+- **Home Directory Resolution**: Smart home directory detection for non-root users
+- **Memory Leak Fix**: Increased EventEmitter max listeners to prevent warnings
+
+### 0.0.3
+
+- Added drag-and-drop reordering for favorites in settings panel
+- Improved favorites management with visual feedback during reordering
+
+### 0.0.2
+
+- Fixed UI issues
 
 ### 0.0.1
 
@@ -90,15 +167,6 @@ Initial release of File Explorer:
 - List and grid view modes
 - Context menu integration
 - Direct file opening in VS Code editor
-
-### 0.0.2
-
-- fix ui issue
-
-### 0.0.3
-
-- Added drag-and-drop reordering for favorites in settings panel
-- Improved favorites management with visual feedback during reordering
 
 ---
 

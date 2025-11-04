@@ -709,3 +709,215 @@ body {
   background-color: var(--vscode-inputValidation-errorBackground);
   color: var(--vscode-inputValidation-errorForeground);
 }
+
+/* SSH Connection Styles */
+.sidebar-title-with-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 12px;
+}
+
+.ssh-action-buttons {
+  display: flex;
+  gap: 4px;
+}
+
+.sidebar-action-btn {
+  background: transparent;
+  border: 1px solid var(--vscode-button-border);
+  color: var(--vscode-foreground);
+  cursor: pointer;
+  font-size: 16px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  transition: background-color 0.1s ease;
+}
+
+.sidebar-action-btn:hover {
+  background-color: var(--vscode-button-hoverBackground);
+}
+
+.ssh-connections-list {
+  padding: 0;
+}
+
+.ssh-connection-item {
+  display: flex;
+  align-items: center;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: background-color 0.1s ease;
+  user-select: none;
+  position: relative;
+}
+
+.ssh-connection-item:hover {
+  background-color: var(--vscode-list-hoverBackground);
+}
+
+.ssh-connection-item.active {
+  background-color: var(--vscode-list-activeSelectionBackground);
+  color: var(--vscode-list-activeSelectionForeground);
+}
+
+.ssh-connection-item.connected {
+  color: var(--vscode-terminal-ansiGreen);
+}
+
+.ssh-connection-item.connecting {
+  color: var(--vscode-terminal-ansiYellow);
+}
+
+.ssh-connection-item.error {
+  color: var(--vscode-terminal-ansiRed);
+}
+
+.ssh-connection-icon {
+  margin-right: 6px;
+  font-size: 14px;
+}
+
+.ssh-connection-name {
+  flex: 1;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ssh-connection-actions {
+  display: none;
+  gap: 4px;
+}
+
+.ssh-connection-item:hover .ssh-connection-actions {
+  display: flex;
+}
+
+.ssh-action-btn {
+  background: transparent;
+  border: none;
+  color: var(--vscode-foreground);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 2px 4px;
+  border-radius: 2px;
+  transition: background-color 0.1s ease;
+}
+
+.ssh-action-btn:hover {
+  background-color: var(--vscode-toolbar-hoverBackground);
+}
+
+/* SSH Modal Styles */
+.modal-large {
+  max-width: 500px;
+  min-width: 450px;
+}
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 6px;
+  color: var(--vscode-foreground);
+}
+
+.form-input {
+  width: 100%;
+  padding: 6px 8px;
+  background-color: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+  border: 1px solid var(--vscode-input-border);
+  border-radius: 2px;
+  font-size: 13px;
+  font-family: var(--vscode-font-family);
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--vscode-focusBorder);
+}
+
+.radio-group {
+  display: flex;
+  gap: 16px;
+  margin-top: 6px;
+}
+
+.radio-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.radio-label input[type="radio"] {
+  cursor: pointer;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.checkbox-label input[type="checkbox"] {
+  cursor: pointer;
+}
+
+.ssh-test-result {
+  padding: 8px 12px;
+  border-radius: 4px;
+  margin-bottom: 12px;
+  font-size: 12px;
+}
+
+.ssh-test-result.success {
+  background-color: var(--vscode-testing-iconPassed);
+  color: var(--vscode-foreground);
+  opacity: 0.15;
+  border: 1px solid var(--vscode-testing-iconPassed);
+}
+
+.ssh-test-result.error {
+  background-color: var(--vscode-testing-iconFailed);
+  color: var(--vscode-foreground);
+  opacity: 0.15;
+  border: 1px solid var(--vscode-testing-iconFailed);
+}
+
+/* Connection Status Badge in Breadcrumb */
+.connection-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-left: 8px;
+  background-color: var(--vscode-badge-background);
+  color: var(--vscode-badge-foreground);
+}
+
+.connection-badge.ssh {
+  background-color: var(--vscode-terminal-ansiBlue);
+  color: var(--vscode-editor-background);
+}
+
+.connection-badge.local {
+  background-color: var(--vscode-terminal-ansiGreen);
+  color: var(--vscode-editor-background);
+}
