@@ -34,7 +34,11 @@ A modern, feature-rich file explorer for Visual Studio Code with an intuitive we
 
 ### Productivity Features
 
-- **Favorites**: Bookmark frequently accessed directories for quick access
+- **Profile-Based Favorites**: Bookmark frequently accessed directories for quick access
+  - Separate favorites for localhost and each SSH connection
+  - Favorites are automatically saved per profile
+  - Switch profiles to see your favorite directories for that system
+- **Profile Selector**: Quickly switch between localhost and SSH connections from a dropdown menu
 - **Drag-and-Drop Reordering**: Reorder your favorites via drag-and-drop in settings
 - **Hidden Files Toggle**: Show or hide hidden files (files starting with `.`)
 - **Persistent Settings**: Your view preferences, favorites, and SSH connections are saved between sessions
@@ -71,35 +75,46 @@ A modern, feature-rich file explorer for Visual Studio Code with an intuitive we
 4. **Customize View**:
    - Click the settings icon to toggle hidden files visibility
    - Switch between list and grid views using the view mode buttons
-   - Add directories to favorites using the star icon
+   - Add directories to favorites by right-clicking folders and selecting "Add to Favorites"
    - Reorder favorites by dragging and dropping in the settings panel
+   - Favorites are profile-specific (each profile has its own set of favorites)
 
-### SSH/SFTP Remote Connections
+### SSH/SFTP Remote Connections and Profile Management
 
 1. **Add an SSH Connection**:
 
-   - Click the "+" button in the SSH Connections section of the sidebar
+   - Select "+ Add New SSH..." from the Profile dropdown at the top of the sidebar
    - Enter connection details (name, host, port, username)
    - Choose authentication method (password or private key)
    - Optionally test the connection before saving
    - Click "Save & Connect" to save and connect
 
-2. **Connect to a Remote Server**:
+2. **Switch Between Profiles**:
 
-   - Click on a saved SSH connection in the sidebar
+   - Use the **Profile dropdown** at the top of the sidebar to switch between:
+     - **localhost**: Your local file system
+     - **SSH connections**: Any saved remote servers
+   - When you switch profiles, your favorites and current directory automatically update
+   - Each profile maintains its own set of favorites
+
+3. **Connect to a Remote Server**:
+
+   - Select an SSH connection from the Profile dropdown
    - The extension will connect and display your remote home directory
    - Browse and manage files just like on your local system
 
-3. **Edit Remote Files**:
+4. **Edit Remote Files**:
 
    - Click on any remote file to open it in the editor
    - Make your changes and save (Cmd+S / Ctrl+S)
    - Changes are automatically uploaded to the remote server
    - You'll see a confirmation message when the upload completes
 
-4. **Switch Between Local and Remote**:
-   - Click "Local" in the devices section to return to your local file system
-   - Click any SSH connection to switch to that remote system
+5. **Manage SSH Connections**:
+   - Open Settings (gear icon in toolbar)
+   - Scroll to "Manage SSH Connections" section
+   - View all saved connections with their details (username@host:port)
+   - Delete unwanted connections using the "✕" button
 
 ## Requirements
 
@@ -111,7 +126,7 @@ This extension stores the following settings:
 
 ### Global State
 
-- **Favorites**: List of favorited directory paths (with drag-and-drop reordering support)
+- **Favorites**: Profile-specific favorited directory paths (separate for localhost and each SSH connection, with drag-and-drop reordering support)
 - **Show Hidden Files**: Toggle visibility of hidden files
 - **View Mode**: List or grid view preference
 - **SSH Connections**: Saved SSH connection configurations
@@ -133,13 +148,15 @@ All settings persist across VS Code sessions and are automatically saved when ch
 
 ### 0.1.0
 
-Major update with SSH/SFTP support:
+Major update with SSH/SFTP support and profile-based favorites:
 
 - **SSH/SFTP Remote File System Support**: Connect to and manage files on remote servers
 - **Multiple Authentication Methods**: Support for password and private key authentication
 - **Secure Credential Storage**: Credentials stored securely using VSCode's Secret Storage API
 - **Remote File Editing**: Edit remote files with automatic upload on save
-- **Connection Management**: Save, manage, and switch between multiple SSH connections
+- **Profile-Based Favorites**: Separate favorites for localhost and each SSH connection
+- **Profile Selector**: Dropdown menu to quickly switch between localhost and SSH connections
+- **Connection Management**: Save, manage, and delete SSH connections from settings panel
 - **Connection Health Monitoring**: Automatic connection health checks every 30 seconds
 - **File System Abstraction**: Unified interface for local and remote file operations
 - **Buffer Handling Fix**: Proper handling of SFTP responses (Array/Uint8Array to Buffer conversion)
@@ -172,6 +189,6 @@ Initial release of File Explorer:
 
 ## Support
 
-For issues, questions, or feature requests, please visit the [GitHub repository](https://github.com/yourusername/file-explorer).
+For issues, questions, or feature requests, please visit the [GitHub repository](https://github.com/Abdulkader-Safi/vscode-file-explorer.git).
 
 **Enjoy exploring your files!**
