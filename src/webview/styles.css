@@ -92,6 +92,35 @@ body {
   opacity: 1;
 }
 
+/* Profile Dropdown Styles */
+.profile-dropdown {
+  width: calc(100% - 24px);
+  margin: 0 12px;
+  padding: 6px 8px;
+  background-color: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+  border: 1px solid var(--vscode-input-border);
+  border-radius: 2px;
+  font-size: 13px;
+  font-family: var(--vscode-font-family);
+  cursor: pointer;
+  transition: border-color 0.1s ease;
+}
+
+.profile-dropdown:hover {
+  border-color: var(--vscode-inputOption-activeBorder);
+}
+
+.profile-dropdown:focus {
+  outline: none;
+  border-color: var(--vscode-focusBorder);
+}
+
+.profile-dropdown option {
+  background-color: var(--vscode-dropdown-background);
+  color: var(--vscode-dropdown-foreground);
+}
+
 /* Main Content Styles */
 .main-content {
   flex: 1;
@@ -620,6 +649,14 @@ body {
   background-color: var(--vscode-button-secondaryHoverBackground);
 }
 
+/* Profile Label */
+.profile-label {
+  font-size: 11px;
+  font-weight: normal;
+  color: var(--vscode-descriptionForeground);
+  margin-left: 8px;
+}
+
 /* Settings Favorites List */
 .settings-favorites-list {
   margin-top: 12px;
@@ -705,6 +742,87 @@ body {
 }
 
 .settings-favorite-remove:hover {
+  opacity: 1;
+  background-color: var(--vscode-inputValidation-errorBackground);
+  color: var(--vscode-inputValidation-errorForeground);
+}
+
+/* Settings SSH Connections List */
+.settings-ssh-list {
+  margin-top: 12px;
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.settings-ssh-empty {
+  padding: 24px;
+  text-align: center;
+  color: var(--vscode-descriptionForeground);
+  font-size: 12px;
+}
+
+.settings-ssh-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+  gap: 8px;
+  border-bottom: 1px solid var(--vscode-panel-border);
+  background-color: var(--vscode-input-background);
+  transition: background-color 0.15s ease;
+}
+
+.settings-ssh-item:last-child {
+  border-bottom: none;
+}
+
+.settings-ssh-item:hover {
+  background-color: var(--vscode-list-hoverBackground);
+}
+
+.settings-ssh-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.settings-ssh-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+}
+
+.settings-ssh-name {
+  font-size: 13px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-ssh-details {
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-ssh-remove {
+  background-color: transparent;
+  border: none;
+  color: var(--vscode-descriptionForeground);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  opacity: 0.6;
+  transition: opacity 0.1s ease, background-color 0.1s ease;
+  flex-shrink: 0;
+}
+
+.settings-ssh-remove:hover {
   opacity: 1;
   background-color: var(--vscode-inputValidation-errorBackground);
   color: var(--vscode-inputValidation-errorForeground);

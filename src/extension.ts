@@ -49,9 +49,22 @@ export function activate(context: vscode.ExtensionContext) {
       panel.webview.html = getWebviewContent(panel.webview, context);
 
       // Send initial state to webview
-      const favorites = context.globalState.get<
-        Array<{ path: string; name: string }>
-      >("favorites", []);
+      // Load profile-specific favorites
+      const allFavorites = context.globalState.get<{
+        [profileId: string]: Array<{ path: string; name: string }>;
+      }>("allFavorites", { localhost: [] });
+
+      // Migrate old favorites to new structure if needed
+      const oldFavorites =
+        context.globalState.get<Array<{ path: string; name: string }>>(
+          "favorites"
+        );
+      if (oldFavorites && oldFavorites.length > 0 && !allFavorites.localhost) {
+        allFavorites.localhost = oldFavorites;
+        context.globalState.update("allFavorites", allFavorites);
+        context.globalState.update("favorites", undefined); // Remove old key
+      }
+
       const showHiddenFiles = context.globalState.get<boolean>(
         "showHiddenFiles",
         false
@@ -64,7 +77,7 @@ export function activate(context: vscode.ExtensionContext) {
 
       panel.webview.postMessage({
         command: "initState",
-        favorites,
+        allFavorites,
         showHiddenFiles,
         viewMode,
         fileSystemType: activeFileSystem.getType(),
@@ -106,7 +119,11 @@ export function activate(context: vscode.ExtensionContext) {
               return;
 
             case "saveFavorites":
-              await context.globalState.update("favorites", message.favorites);
+              // Save profile-specific favorites
+              await context.globalState.update(
+                "allFavorites",
+                message.allFavorites
+              );
               return;
 
             case "saveSettings":
@@ -173,6 +190,18 @@ export function activate(context: vscode.ExtensionContext) {
               await handleDisconnectSSH(panel, message);
               return;
 
+            case "switchToLocal":
+              // Switch back to local filesystem
+              activeFileSystem = new LocalFileSystem();
+              const localHomeDir = await activeFileSystem.getHomeDirectory();
+              await sendDirectoryContents(panel, localHomeDir, context);
+              panel.webview.postMessage({
+                command: "fileSystemSwitched",
+                type: "local",
+                connectionId: null,
+              });
+              return;
+
             case "deleteSSHConnection":
               await handleDeleteSSHConnection(panel, message);
               return;
@@ -225,7 +254,8 @@ async function sendDirectoryContents(
     if (panel && panel.webview !== undefined) {
       panel.webview.postMessage({
         command: "error",
-        text: error instanceof Error ? error.message : "Failed to read directory",
+        text:
+          error instanceof Error ? error.message : "Failed to read directory",
       });
     }
   }
@@ -336,17 +366,23 @@ async function handleOpenFile(
 
       // Create a unique temp file path
       const connectionId = activeFileSystem.getConnectionId() || "default";
-      const tempFilePath = path.join(
-        tempDir,
-        `${connectionId}-${fileName}`
-      );
+      const tempFilePath = path.join(tempDir, `${connectionId}-${fileName}`);
 
       // Download the file
       const content = await activeFileSystem.readFile(filePath);
       fs.writeFileSync(tempFilePath, content);
 
       // Check if it's an image file
-      const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.svg', '.webp', '.bmp', '.ico'];
+      const imageExtensions = [
+        ".jpg",
+        ".jpeg",
+        ".png",
+        ".gif",
+        ".svg",
+        ".webp",
+        ".bmp",
+        ".ico",
+      ];
       const isImage = imageExtensions.includes(fileExt);
 
       // Open the file
@@ -369,37 +405,41 @@ async function handleOpenFile(
 
       // Watch for changes and upload back to SSH (only for editable files, not images)
       if (!isImage) {
-        const watcher = vscode.workspace.onDidSaveTextDocument(async (savedDoc) => {
-          if (savedDoc.uri.fsPath === tempFilePath) {
-            try {
-              const updatedContent = fs.readFileSync(tempFilePath);
-              await activeFileSystem.writeFile(filePath, updatedContent);
-              vscode.window.showInformationMessage(
-                `✓ Uploaded changes to ${fileName}`
-              );
-            } catch (error) {
-              vscode.window.showErrorMessage(
-                `Failed to upload changes: ${
-                  error instanceof Error ? error.message : "Unknown error"
-                }`
-              );
+        const watcher = vscode.workspace.onDidSaveTextDocument(
+          async (savedDoc) => {
+            if (savedDoc.uri.fsPath === tempFilePath) {
+              try {
+                const updatedContent = fs.readFileSync(tempFilePath);
+                await activeFileSystem.writeFile(filePath, updatedContent);
+                vscode.window.showInformationMessage(
+                  `✓ Uploaded changes to ${fileName}`
+                );
+              } catch (error) {
+                vscode.window.showErrorMessage(
+                  `Failed to upload changes: ${
+                    error instanceof Error ? error.message : "Unknown error"
+                  }`
+                );
+              }
             }
           }
-        });
+        );
 
         // Clean up watcher when document is closed
-        const closeWatcher = vscode.workspace.onDidCloseTextDocument((closedDoc) => {
-          if (closedDoc.uri.fsPath === tempFilePath) {
-            watcher.dispose();
-            closeWatcher.dispose();
-            // Delete temp file
-            try {
-              fs.unlinkSync(tempFilePath);
-            } catch {
-              // Ignore errors when deleting temp file
+        const closeWatcher = vscode.workspace.onDidCloseTextDocument(
+          (closedDoc) => {
+            if (closedDoc.uri.fsPath === tempFilePath) {
+              watcher.dispose();
+              closeWatcher.dispose();
+              // Delete temp file
+              try {
+                fs.unlinkSync(tempFilePath);
+              } catch {
+                // Ignore errors when deleting temp file
+              }
             }
           }
-        });
+        );
 
         // Store watchers in context subscriptions so they get cleaned up
         context.subscriptions.push(watcher, closeWatcher);

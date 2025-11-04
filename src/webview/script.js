@@ -3,7 +3,8 @@
 
   // State
   let state = {
-    favorites: [],
+    favorites: [], // Current profile's favorites
+    allFavorites: {}, // All favorites organized by profile: { "localhost": [], "ssh-id-1": [], ... }
     currentPath: "",
     searchQuery: "",
     showHiddenFiles: false,
@@ -11,15 +12,23 @@
     sshConnections: [],
     fileSystemType: "local",
     activeConnectionId: null,
+    currentProfile: "localhost", // Current active profile
   };
 
   // DOM elements
   const fileListElement = document.getElementById("fileList");
   const breadcrumbElement = document.getElementById("breadcrumb");
   const searchInput = document.getElementById("searchInput");
+  const profileDropdown = document.getElementById("profileDropdown");
   const favoritesListElement = document.getElementById("favoritesList");
   const settingsFavoritesListElement = document.getElementById(
     "settingsFavoritesList"
+  );
+  const favoritesProfileLabel = document.getElementById(
+    "favoritesProfileLabel"
+  );
+  const settingsSSHConnectionsListElement = document.getElementById(
+    "settingsSSHConnectionsList"
   );
   const devicesListElement = document.getElementById("devicesList");
   const settingsBtn = document.getElementById("settingsBtn");
@@ -41,10 +50,6 @@
   const closeInputModal = document.getElementById("closeInputModal");
 
   // SSH elements
-  const sshConnectionsListElement = document.getElementById(
-    "sshConnectionsList"
-  );
-  const addSSHConnectionBtn = document.getElementById("addSSHConnectionBtn");
   const sshModal = document.getElementById("sshModal");
   const closeSSHModal = document.getElementById("closeSSHModal");
   const sshCancelBtn = document.getElementById("sshCancelBtn");
@@ -82,6 +87,7 @@
 
   // Event Listeners
   searchInput.addEventListener("input", handleSearch);
+  profileDropdown.addEventListener("change", handleProfileChange);
   settingsBtn.addEventListener("click", openSettings);
   closeSettingsBtn.addEventListener("click", closeSettings);
   showHiddenFilesCheckbox.addEventListener("change", handleHiddenFilesToggle);
@@ -91,7 +97,6 @@
   newFolderBtn.addEventListener("click", handleNewFolder);
 
   // SSH event listeners
-  addSSHConnectionBtn.addEventListener("click", openSSHModal);
   closeSSHModal.addEventListener("click", closeSSHModalHandler);
   sshCancelBtn.addEventListener("click", closeSSHModalHandler);
   sshSaveBtn.addEventListener("click", handleSSHSave);
@@ -124,7 +129,9 @@
     const message = event.data;
     switch (message.command) {
       case "initState":
-        state.favorites = message.favorites || [];
+        state.allFavorites = message.allFavorites || { localhost: [] };
+        state.currentProfile = message.connectionId || "localhost";
+        state.favorites = state.allFavorites[state.currentProfile] || [];
         state.showHiddenFiles = message.showHiddenFiles || false;
         state.viewMode = message.viewMode || "list";
         state.sshConnections = message.sshConnections || [];
@@ -132,7 +139,7 @@
         state.activeConnectionId = message.connectionId || null;
         loadFavorites();
         updateSettingsUI();
-        renderSSHConnections();
+        updateProfileDropdown();
         break;
       case "updateDirectory":
         currentPath = message.path;
@@ -140,9 +147,16 @@
         state.currentPath = currentPath;
         state.fileSystemType = message.fileSystemType || "local";
         state.activeConnectionId = message.connectionId || null;
+        state.currentProfile = message.connectionId || "localhost";
+        state.favorites = state.allFavorites[state.currentProfile] || [];
         updateBreadcrumb(message.path);
         filterAndRenderItems();
-        renderSSHConnections();
+        updateProfileDropdown();
+        loadFavorites();
+        // Update settings modal if it's open
+        if (settingsModal.style.display === "flex") {
+          loadSettingsFavorites();
+        }
         break;
       case "error":
         showError(message.text);
@@ -155,7 +169,7 @@
         break;
       case "sshConnectionCreated":
         state.sshConnections = message.connections || [];
-        renderSSHConnections();
+        updateProfileDropdown();
         closeSSHModalHandler();
         // Auto-connect to the new connection
         vscode.postMessage({
@@ -172,16 +186,25 @@
         break;
       case "sshConnectionDeleted":
         state.sshConnections = message.connections || [];
-        renderSSHConnections();
+        updateProfileDropdown();
+        loadSettingsSSHConnections();
         break;
       case "sshConnectionsUpdated":
         state.sshConnections = message.connections || [];
-        renderSSHConnections();
+        updateProfileDropdown();
+        loadSettingsSSHConnections();
         break;
       case "fileSystemSwitched":
         state.fileSystemType = message.type;
         state.activeConnectionId = message.connectionId;
-        renderSSHConnections();
+        state.currentProfile = message.connectionId || "localhost";
+        state.favorites = state.allFavorites[state.currentProfile] || [];
+        updateProfileDropdown();
+        loadFavorites();
+        // Update settings modal if it's open
+        if (settingsModal.style.display === "flex") {
+          loadSettingsFavorites();
+        }
         break;
     }
   });
@@ -281,6 +304,9 @@
   }
 
   function loadFavorites() {
+    // Load favorites for the current profile
+    state.favorites = state.allFavorites[state.currentProfile] || [];
+
     favoritesListElement.innerHTML = "";
     state.favorites.forEach((fav) => {
       const item = createFavoriteItem(fav);
@@ -334,9 +360,14 @@
   }
 
   function saveFavorites() {
+    // Update allFavorites with current profile's favorites
+    state.allFavorites[state.currentProfile] = state.favorites;
+
     vscode.postMessage({
       command: "saveFavorites",
       favorites: state.favorites,
+      profile: state.currentProfile,
+      allFavorites: state.allFavorites,
     });
   }
 
@@ -349,6 +380,9 @@
 
   function openSettings() {
     settingsModal.style.display = "flex";
+    // Refresh settings UI to ensure profile label is current
+    loadSettingsFavorites();
+    loadSettingsSSHConnections();
   }
 
   function closeSettings() {
@@ -417,16 +451,32 @@
     gridViewBtn.classList.toggle("active", state.viewMode === "grid");
     fileListElement.classList.toggle("grid-view", state.viewMode === "grid");
     loadSettingsFavorites();
+    loadSettingsSSHConnections();
   }
 
   function loadSettingsFavorites() {
     settingsFavoritesListElement.innerHTML = "";
 
+    // Get the current profile name for display
+    let profileName = "localhost";
+    if (state.currentProfile !== "localhost") {
+      const connection = state.sshConnections.find(
+        (c) => c.id === state.currentProfile
+      );
+      if (connection) {
+        profileName = connection.name;
+      }
+    }
+
+    // Update the profile label
+    if (favoritesProfileLabel) {
+      favoritesProfileLabel.textContent = `(${profileName})`;
+    }
+
     if (state.favorites.length === 0) {
       const emptyMessage = document.createElement("div");
       emptyMessage.className = "settings-favorites-empty";
-      emptyMessage.textContent =
-        "No favorites yet. Right-click a folder to add it to favorites.";
+      emptyMessage.textContent = `No favorites yet for ${profileName}. Right-click a folder to add it to favorites.`;
       settingsFavoritesListElement.appendChild(emptyMessage);
       return;
     }
@@ -541,6 +591,72 @@
     }
 
     return false;
+  }
+
+  function loadSettingsSSHConnections() {
+    settingsSSHConnectionsListElement.innerHTML = "";
+
+    if (state.sshConnections.length === 0) {
+      const emptyMessage = document.createElement("div");
+      emptyMessage.className = "settings-ssh-empty";
+      emptyMessage.textContent =
+        'No SSH connections yet. Select "+ Add New SSH..." from the profile dropdown to create one.';
+      settingsSSHConnectionsListElement.appendChild(emptyMessage);
+      return;
+    }
+
+    state.sshConnections.forEach((connection) => {
+      const item = createSettingsSSHItem(connection);
+      settingsSSHConnectionsListElement.appendChild(item);
+    });
+  }
+
+  function createSettingsSSHItem(connection) {
+    const item = document.createElement("div");
+    item.className = "settings-ssh-item";
+
+    const iconSpan = document.createElement("span");
+    iconSpan.className = "settings-ssh-icon";
+    iconSpan.textContent = "🔗";
+
+    const infoDiv = document.createElement("div");
+    infoDiv.className = "settings-ssh-info";
+
+    const nameSpan = document.createElement("div");
+    nameSpan.className = "settings-ssh-name";
+    nameSpan.textContent = connection.name;
+
+    const detailsSpan = document.createElement("div");
+    detailsSpan.className = "settings-ssh-details";
+    detailsSpan.textContent = `${connection.username}@${connection.host}:${connection.port}`;
+
+    infoDiv.appendChild(nameSpan);
+    infoDiv.appendChild(detailsSpan);
+
+    const removeBtn = document.createElement("button");
+    removeBtn.className = "settings-ssh-remove";
+    removeBtn.textContent = "✕";
+    removeBtn.title = "Delete connection";
+    removeBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      // Confirm deletion
+      if (
+        confirm(
+          `Are you sure you want to delete the SSH connection "${connection.name}"?`
+        )
+      ) {
+        vscode.postMessage({
+          command: "deleteSSHConnection",
+          connectionId: connection.id,
+        });
+      }
+    });
+
+    item.appendChild(iconSpan);
+    item.appendChild(infoDiv);
+    item.appendChild(removeBtn);
+
+    return item;
   }
 
   function handleHiddenFilesToggle() {
@@ -1114,7 +1230,9 @@
     const username = document.getElementById("sshUsernameInput").value.trim();
     const authMethod = authPassword.checked ? "password" : "key";
     const password = document.getElementById("sshPasswordInput").value;
-    const privateKeyPath = document.getElementById("sshKeyPathInput").value.trim();
+    const privateKeyPath = document
+      .getElementById("sshKeyPathInput")
+      .value.trim();
     const passphrase = document.getElementById("sshPassphraseInput").value;
 
     if (!host || !username) {
@@ -1158,9 +1276,13 @@
     const username = document.getElementById("sshUsernameInput").value.trim();
     const authMethod = authPassword.checked ? "password" : "key";
     const password = document.getElementById("sshPasswordInput").value;
-    const privateKeyPath = document.getElementById("sshKeyPathInput").value.trim();
+    const privateKeyPath = document
+      .getElementById("sshKeyPathInput")
+      .value.trim();
     const passphrase = document.getElementById("sshPassphraseInput").value;
-    const saveCredentials = document.getElementById("saveCredentialsCheckbox").checked;
+    const saveCredentials = document.getElementById(
+      "saveCredentialsCheckbox"
+    ).checked;
 
     if (!name || !host || !username) {
       sshTestResult.textContent = "Please fill in name, host, and username";
@@ -1183,67 +1305,71 @@
     });
   }
 
-  function renderSSHConnections() {
-    if (!sshConnectionsListElement) {
+  function updateProfileDropdown() {
+    if (!profileDropdown) {
       return;
     }
 
-    sshConnectionsListElement.innerHTML = "";
+    // Clear existing options except localhost
+    profileDropdown.innerHTML = '<option value="localhost">localhost</option>';
 
+    // Add SSH connections as options
     state.sshConnections.forEach((connection) => {
-      const item = document.createElement("div");
-      item.className = "ssh-connection-item";
-
-      // Add status classes
-      if (state.activeConnectionId === connection.id) {
-        item.classList.add("connected");
-      }
-
-      item.innerHTML = `
-        <span class="ssh-connection-icon">🔗</span>
-        <span class="ssh-connection-name">${connection.name}</span>
-        <div class="ssh-connection-actions">
-          <button class="ssh-action-btn" data-action="delete" title="Delete">✕</button>
-        </div>
-      `;
-
-      // Connect/disconnect on click
-      item.addEventListener("click", (e) => {
-        if (e.target.classList.contains("ssh-action-btn")) {
-          return; // Let button handlers handle this
-        }
-
-        if (state.activeConnectionId === connection.id) {
-          // Disconnect
-          vscode.postMessage({
-            command: "disconnectSSH",
-            connectionId: connection.id,
-          });
-        } else {
-          // Connect
-          vscode.postMessage({
-            command: "connectSSH",
-            connectionId: connection.id,
-          });
-        }
-      });
-
-      // Delete button
-      const deleteBtn = item.querySelector('[data-action="delete"]');
-      deleteBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        vscode.postMessage({
-          command: "deleteSSHConnection",
-          connectionId: connection.id,
-        });
-      });
-
-      sshConnectionsListElement.appendChild(item);
+      const option = document.createElement("option");
+      option.value = connection.id;
+      option.textContent = connection.name;
+      profileDropdown.appendChild(option);
     });
+
+    // Add separator and "Add New SSH..." option
+    const separator = document.createElement("option");
+    separator.disabled = true;
+    separator.textContent = "──────────────";
+    profileDropdown.appendChild(separator);
+
+    const addNewOption = document.createElement("option");
+    addNewOption.value = "add-new-ssh";
+    addNewOption.textContent = "+ Add New SSH...";
+    profileDropdown.appendChild(addNewOption);
+
+    // Set current profile
+    profileDropdown.value = state.currentProfile;
+  }
+
+  function handleProfileChange() {
+    const selectedProfile = profileDropdown.value;
+
+    // Check if "Add New SSH..." was selected
+    if (selectedProfile === "add-new-ssh") {
+      // Reset dropdown to previous profile
+      profileDropdown.value = state.currentProfile;
+      // Open SSH modal
+      openSSHModal();
+      return;
+    }
+
+    state.currentProfile = selectedProfile;
+
+    // Load favorites for the selected profile
+    loadFavorites();
+
+    // If profile is an SSH connection, connect to it
+    if (selectedProfile !== "localhost") {
+      vscode.postMessage({
+        command: "connectSSH",
+        connectionId: selectedProfile,
+      });
+    } else {
+      // Switch back to local filesystem
+      vscode.postMessage({
+        command: "switchToLocal",
+      });
+    }
   }
 
   function handleSSHConnectionStatus(connectionId, status, error) {
-    renderSSHConnections();
+    // Update profile dropdown to reflect connection status
+    updateProfileDropdown();
 
     if (status === "error" && error) {
       showError(`SSH Connection Error: ${error}`);

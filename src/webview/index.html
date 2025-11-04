@@ -14,25 +14,18 @@
     <div class="app-container">
       <aside class="sidebar">
         <div class="sidebar-section">
+          <h3 class="sidebar-title">PROFILE</h3>
+          <select id="profileDropdown" class="profile-dropdown">
+            <option value="localhost">localhost</option>
+          </select>
+        </div>
+        <div class="sidebar-section">
           <h3 class="sidebar-title">FAVORITES</h3>
           <div id="favoritesList" class="favorites-list"></div>
         </div>
         <div class="sidebar-section">
           <h3 class="sidebar-title">DEVICES</h3>
           <div id="devicesList" class="devices-list"></div>
-        </div>
-        <div class="sidebar-section">
-          <div class="sidebar-title-with-action">
-            <h3 class="sidebar-title">SSH CONNECTIONS</h3>
-            <button
-              class="sidebar-action-btn"
-              id="addSSHConnectionBtn"
-              title="Add SSH Connection"
-            >
-              +
-            </button>
-          </div>
-          <div id="sshConnectionsList" class="ssh-connections-list"></div>
         </div>
       </aside>
       <main class="main-content">
@@ -99,13 +92,26 @@
             </div>
           </div>
           <div class="setting-item">
-            <label class="setting-label">Manage Favorites</label>
+            <label class="setting-label">
+              Manage Favorites
+              <span id="favoritesProfileLabel" class="profile-label"></span>
+            </label>
             <p class="setting-description">
-              Drag and drop to reorder your favorites
+              Drag and drop to reorder your favorites for the current profile
             </p>
             <div
               id="settingsFavoritesList"
               class="settings-favorites-list"
+            ></div>
+          </div>
+          <div class="setting-item">
+            <label class="setting-label">Manage SSH Connections</label>
+            <p class="setting-description">
+              View and delete your saved SSH connections
+            </p>
+            <div
+              id="settingsSSHConnectionsList"
+              class="settings-ssh-list"
             ></div>
           </div>
         </div>
